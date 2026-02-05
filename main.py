@@ -1,7 +1,8 @@
+import os
 import discord
 from discord.ext import commands
 
-TOKEN = "MTQ2ODk1NjM2OTg4NDQxODE2MA.GHcMfK.aq_SPzETy3R-N6aKx1eHGhHeKQXdI_uDajHo0o"
+TOKEN = os.environ.get("TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -18,3 +19,4 @@ async def hello(ctx):
 
 
 bot.run(TOKEN)
+
