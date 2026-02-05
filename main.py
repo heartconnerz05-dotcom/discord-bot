@@ -16,4 +16,5 @@ async def on_ready():
 async def hello(ctx):
     await ctx.send(f'สวัสดี {ctx.author.name} :wave:')
 
+
 bot.run(TOKEN)
