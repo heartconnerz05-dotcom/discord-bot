@@ -19,4 +19,3 @@ async def hello(ctx):
 
 
 bot.run(TOKEN)
-
