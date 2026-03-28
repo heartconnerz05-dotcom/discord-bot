@@ -1,58 +1,45 @@
-const Discord = require('discord.js-selfbot-v13');
-const si = require('systeminformation');
-const client = new Discord.Client({ checkUpdate: false });
+import discord
+from discord.ext import tasks
+import psutil
+import os
+import datetime
+import pytz
 
-const keepAlive = require('./server.js');
-keepAlive();
+# ดึง Token จาก Secrets ที่เราตั้งไว้
+TOKEN = os.getenv('TOKEN')
+APP_ID = 1487130863304179934 
 
-// ฟังก์ชันดึงข้อมูล วันที่ เวลา และสเปคคอม
-async function getSystemStats() {
-    const now = new Date();
-    // ฟอร์แมตวันที่: 13 / December / 2023
-    const day = now.getDate();
-    const month = now.toLocaleString('en-US', { month: 'long' });
-    const year = now.getFullYear();
-    const time = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+class MyClient(discord.Client):
+    async def on_ready(self):
+        print(f'✅ บอท Python ออนไลน์แล้ว: {self.user}')
+        self.update_status.start()
 
-    // ดึงค่า CPU และ RAM
-    const load = await si.currentLoad();
-    const mem = await si.mem();
-    const cpuUsage = load.currentLoad.toFixed(1);
-    const ramUsage = ((mem.active / mem.total) * 100).toFixed(1);
-
-    return {
-        timeStr: `( ⏰ ${time} ) ✧ ( 🗓️ ${day} / ${month} / ${year} )`,
-        statsStr: `✨ • HEART | CPU: ${cpuUsage}% RAM: ${ramUsage}%`,
-        pingStr: `📡 My Ping : ${client.ws.ping} ms`
-    };
-}
-
-client.on('ready', async () => {
-    console.clear();
-    console.log(`Logged in as ${client.user.tag}!`);
-
-    const updatePresence = async () => {
-        const data = await getSystemStats();
+    @tasks.loop(seconds=30)
+    async def update_status(self):
+        # ตั้งเวลาไทย
+        tz = pytz.timezone('Asia/Bangkok')
+        now = datetime.datetime.now(tz)
+        time_str = now.strftime("%H:%M")
+        date_str = now.strftime("%d/%-m/%Y")
         
-        const r = new Discord.RichPresence(client)
-            .setApplicationId('1487130863304179934')
-            .setType('STREAMING')
-            .setURL('https://www.youtube.com/watch?v=dQw4w9WgXcQ') // ลิงก์ที่ต้องการ
-            .setName('YOUTUBE') // จะขึ้นว่า ถ่ายทอดสดบน YOUTUBE
-            .setDetails(data.timeStr)
-            .setState(data.statsStr)
-            .setStartTimestamp(Date.now()) // ตัวนับเวลา "ผ่านไปแล้ว"
-            .setAssetsLargeImage('https://cdn.discordapp.com/attachments/1276206630043648103/1487145047941054484/bbfa30a752409dc211bda11676d4a2d8.gif?ex=69c81341&is=69c6c1c1&hm=8b530fe1a28e7b043553bb432a1a8ccb7c074e303c65b7d8b5df2a8e3c234ef6&') 
-            .setAssetsLargeText(data.pingStr) // เอาเมาส์วางที่รูปจะขึ้น Ping
-            .addButton('JOIN DISCORD', 'https://discord.com')
-            .addButton('CONTACT', 'https://www.facebook.com/profile.php?id=61565692229208');
+        # ดึงค่าระบบ
+        cpu = psutil.cpu_percent()
+        ram = psutil.virtual_memory().percent
 
-        client.user.setActivity(r);
-    };
+        # ตั้งค่าให้เป็นสีม่วง (Streaming)
+        activity = discord.Streaming(
+            name="Twitch",
+            url="https://www.twitch.tv", # ต้องใช้ลิงก์ Twitch/YT จริง
+            details="HEART PAIHAISUTH",
+            state="I5GEN12+1050Ti",
+            application_id=APP_ID
+        )
 
-    updatePresence();
-    setInterval(updatePresence, 30000); // อัปเดตทุก 30 วินาที
-    client.user.setPresence({ status: "idle" });
-});
+        # ใส่รูปภาพและข้อความสถานะ
+        activity.assets['large_image'] = 'https://cdn.discordapp.com/attachments/1276206630043648103/1487145047941054484/bbfa30a752409dc211bda11676d4a2d8.gif'
+        activity.assets['large_text'] = f"🕙 {time_str} 🗓️ {date_str} 📊 CPU: {cpu}% RAM: {ram}%"
 
-client.login(process.env.TOKEN);
+        await self.change_presence(activity=activity, status=discord.Status.idle)
+
+client = MyClient()
+client.run(TOKEN)
